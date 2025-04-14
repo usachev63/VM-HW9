@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.10)
+project(VMHW9)
+add_library(safe_read SafeRead.cpp)
+add_subdirectory(googletest)
+add_executable(tests SafeReadTests.cpp)
+target_link_libraries(tests GTest::gtest_main safe_read)
