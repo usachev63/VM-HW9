@@ -1,5 +1,6 @@
 #include "SafeRead.h"
 #include "gtest/gtest.h"
+#include <sys/mman.h>
 
 TEST(SafeRead, StackPointer) {
   uint8_t x = 10;
@@ -55,4 +56,27 @@ TEST(SafeRead, UseAfterFree) {
 TEST(SafeRead, UseStackShifted) {
   uint8_t x;
   safe_read_uint8(&x + 1024 * 1024); // does not crash
+}
+
+TEST(SafeRead, MisalignedAccess) {
+  int x;
+  safe_read_uint8((uint8_t *)&x + 1); // does not crash
+}
+
+TEST(SafeRead, ProtectedPage) {
+  const size_t page_size = sysconf(_SC_PAGESIZE);
+  void *ptr =
+      mmap(nullptr, page_size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  safe_read_uint8(static_cast<uint8_t *>(ptr)); // does not crash
+  munmap(ptr, page_size);
+}
+
+TEST(SafeRead, X) {
+  const size_t page_size = sysconf(_SC_PAGESIZE);
+  int fd = memfd_create("test", 0);
+  ftruncate(fd, 4096);
+  uint8_t *mapping =
+      (uint8_t *)mmap(nullptr, page_size, PROT_READ, MAP_SHARED, fd, 0);
+  safe_read_uint8(mapping + 4096); // does not crash
+  munmap(mapping, page_size);
 }
